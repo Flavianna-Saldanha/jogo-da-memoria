@@ -10,7 +10,6 @@ const Page = () => {
 					<Image 
 						src={logoImage}
 						width="200"
-						height="200"
 						alt=""
 					/>
 				</C.LogoLink>
