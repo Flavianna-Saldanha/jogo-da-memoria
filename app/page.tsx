@@ -6,10 +6,46 @@ import logoImage from "./assets/devmemory_logo.png";
 import RestartIcon from "./svgs/restart.svg";
 import { InfoItem } from "./components/InfoItem";
 import { Button } from "./components/Button";
+import { useEffect, useState } from "react";
+import { GridItemType } from "./types/GridItemType";
+import { items } from "./data/items";
 
 const Page = () => {
+	const [playing, setPlaying] = useState<boolean>(false);
+	const [timeElapsed, setTimeElapsed] = useState<number>(0);
+	const [moveCount, setMoveCount] = useState<number>(0);
+	const [shownCount, setShownCount] = useState<number>(0);
+	const [gridItems, setGridItems] = useState<GridItemType[]>([]);
+
+	useEffect(() => resetAndCreateGrid(), []);
+
 	const resetAndCreateGrid = () => {
-		// lógica para reiniciar o jogo
+		setTimeElapsed(0);
+		setMoveCount(0);
+		setShownCount(0);
+		
+		const tmpGrid: GridItemType[] = [];
+		for(let i = 0; i < (items.length * 2); i++) {
+			tmpGrid.push({
+				item: null,
+				shown: false,
+				permanentShown: false
+			});
+		}
+
+		for(let w = 0; w < 2; w++) {
+			for(let i = 0; i < items.length; i++) {
+					let pos = -1;
+				while(pos < 0 || tmpGrid[pos].item !== null) {
+					pos = Math.floor(Math.random() * (items.length * 2));
+				}
+				tmpGrid[pos].item = i;
+			}
+		}
+
+		setGridItems(tmpGrid);
+
+		setPlaying(true);
 	};
 
 	return (
@@ -37,7 +73,9 @@ const Page = () => {
 			</C.Info>
 
 			<C.GridArea>
-				...
+				<C.Grid>
+					
+				</C.Grid>
 			</C.GridArea>
 		</C.Container>
 	);
