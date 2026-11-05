@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -12,51 +13,107 @@ import { items } from "./data/items";
 import { GridItem } from "./components/GridItem";
 import { formatTimeElapsed } from "./helpers/formatTimeElapsed";
 
+const createGrid = (): GridItemType[] => {
+	const tmpGrid: GridItemType[] = [];
+
+	for(let i = 0; i < (items.length * 2); i++) {
+		tmpGrid.push({
+			item: null,
+			shown: false,
+			permanentShown: false
+		});
+	}
+
+	for(let w = 0; w < 2; w++) {
+		for(let i = 0; i < items.length; i++) {
+			let pos = -1;
+
+			while(pos < 0 || tmpGrid[pos].item !== null) {
+				pos = Math.floor(Math.random() * (items.length * 2));
+			}
+
+			tmpGrid[pos].item = i;
+		}
+	}
+
+	return tmpGrid;
+};
+
 const Page = () => {
-	const [playing, setPlaying] = useState<boolean>(false);
+	const [playing, setPlaying] = useState<boolean>(true);
 	const [timeElapsed, setTimeElapsed] = useState<number>(0);
 	const [moveCount, setMoveCount] = useState<number>(0);
 	const [shownCount, setShownCount] = useState<number>(0);
-	const [gridItems, setGridItems] = useState<GridItemType[]>([]);
-
-	useEffect(() => resetAndCreateGrid(), []);
-
-	useEffect(() => {
-		const timer = setInterval(() => {
-			if(playing) {
-				setTimeElapsed(timeElapsed + 1);
-			}
-		}, 1000);
-		return () => clearInterval(timer);
-	}, [playing, timeElapsed]);
+	const [gridItems, setGridItems] = useState<GridItemType[]>(() => createGrid());
 
 	const resetAndCreateGrid = () => {
 		setTimeElapsed(0);
 		setMoveCount(0);
 		setShownCount(0);
-		
-		// eslint-disable-next-line prefer-const
-		let tmpGrid: GridItemType[] = [];
-		for(let i = 0; i < (items.length * 2); i++) tmpGrid.push({
-				item: null,
-				shown: false,
-				permanentShown: false
-			});
-
-		for(let w = 0; w < 2; w++) {
-			for(let i = 0; i < items.length; i++) {
-					let pos = -1;
-				while(pos < 0 || tmpGrid[pos].item !== null) {
-					pos = Math.floor(Math.random() * (items.length * 2));
-				}
-				tmpGrid[pos].item = i;
-			}
-		}
-
-		setGridItems(tmpGrid);
-
+		setGridItems(createGrid());
 		setPlaying(true);
 	};
+
+	useEffect(() => {
+		const timer = setInterval(() => {
+			if(playing) {
+				setTimeElapsed(prev => prev + 1);
+			}
+		}, 1000);
+
+		return () => clearInterval(timer);
+	}, [playing]);
+
+	useEffect(() => {
+		if(shownCount === 2) {
+			const opened = gridItems.filter(item => item.shown === true);
+
+			if(opened.length === 2) {
+
+				if(opened[0].item === opened[1].item) {
+					const tmpGrid = [...gridItems];
+
+					for(const i in tmpGrid) {
+						if(tmpGrid[i].shown) {
+							tmpGrid[i].permanentShown = true;
+							tmpGrid[i].shown = false;
+						}
+					}
+
+					const finished = tmpGrid.every(
+						item => item.permanentShown === true
+					);
+
+					const timeout = setTimeout(() => {
+						setGridItems(tmpGrid);
+						setShownCount(0);
+						setMoveCount(moveCount => moveCount + 1);
+
+						if(finished) {
+							setPlaying(false);
+						}
+					}, 0);
+
+					return () => clearTimeout(timeout);
+
+				} else {
+					const timeout = setTimeout(() => {
+						const tmpGrid = [...gridItems];
+
+						for(const i in tmpGrid) {
+							tmpGrid[i].shown = false;
+						}
+
+						setGridItems(tmpGrid);
+						setShownCount(0);
+						setMoveCount(moveCount => moveCount + 1);
+					}, 900);
+
+					return () => clearTimeout(timeout);
+				}
+			}
+		}
+	}, [shownCount, gridItems]);
 
 	const handleItemClick = (index: number) => {
 		if(playing && index !== null && shownCount < 2) {
@@ -69,7 +126,7 @@ const Page = () => {
 
 			setGridItems(tmpGrid);
 		}
-	}
+	};
 
 	return (
 		<C.Container>
@@ -85,7 +142,7 @@ const Page = () => {
 
 				<C.InfoArea>
 					<InfoItem label="Tempo" value={formatTimeElapsed(timeElapsed)} />
-					<InfoItem label="Movimentos" value="0" />
+					<InfoItem label="Movimentos" value={moveCount.toString()} />
 				</C.InfoArea>
 
 				<Button
@@ -98,7 +155,7 @@ const Page = () => {
 			<C.GridArea>
 				<C.Grid>
 					{gridItems.map((item, index) => (
-						<GridItem 
+						<GridItem
 							key={index}
 							item={item}
 							onClick={() => handleItemClick(index)}
